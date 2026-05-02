@@ -1,63 +1,37 @@
-import axios from 'axios'
+import axios from "axios";
 
-const API_BASE_URL = 'http://localhost:4000/api/auth'
+const authClient = axios.create({
+  baseURL: "http://localhost:4000/api/auth",
+  headers: { "Content-Type": "application/json" },
+});
 
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+const persistSession = ({ token, user }) => {
+  localStorage.setItem("token", token);
+  localStorage.setItem("user", JSON.stringify(user));
+};
 
 export const authService = {
   register: async (username, email, password) => {
-    try {
-      const response = await axiosInstance.post('/register', {
-        username,
-        email,
-        password,
-      })
-      
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token)
-        localStorage.setItem('user', JSON.stringify(response.data.user))
-      }
-      
-      return response.data
-    } catch (error) {
-      throw error.response?.data || { message: 'An error occurred' }
-    }
+    const res = await authClient.post("/register", { username, email, password });
+    persistSession(res.data.data);
+    return res.data.data;
   },
 
   login: async (email, password) => {
-    try {
-      const response = await axiosInstance.post('/login', {
-        email,
-        password,
-      })
-      
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token)
-        localStorage.setItem('user', JSON.stringify(response.data.user))
-      }
-      
-      return response.data
-    } catch (error) {
-      throw error.response?.data || { message: 'An error occurred' }
-    }
+    const res = await authClient.post("/login", { email, password });
+    persistSession(res.data.data);
+    return res.data.data;
   },
 
   logout: () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   },
 
   getUser: () => {
-    const user = localStorage.getItem('user')
-    return user ? JSON.parse(user) : null
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
   },
 
-  getToken: () => {
-    return localStorage.getItem('token')
-  },
-}
+  getToken: () => localStorage.getItem("token"),
+};

@@ -1,7 +1,6 @@
 import { messageModel } from "../models/message.model.js";
 import { userModel } from "../models/user.model.js";
 
-// GET /api/messages/:userId  — conversation between current user and :userId
 export const getConversation = async (req, res) => {
   const currentId = req.user._id;
   const { userId } = req.params;
@@ -17,92 +16,79 @@ export const getConversation = async (req, res) => {
     .populate("sender", "username profilePic")
     .populate("receiver", "username profilePic");
 
-  // Mark received messages as read
   await messageModel.updateMany(
     { sender: userId, receiver: currentId, read: false },
     { read: true }
   );
 
-  return res.status(200).json({ messages });
+  res.status(200).json({ success: true, data: { messages } });
 };
 
-// GET /api/messages/conversations  — list of recent conversations
 export const getConversations = async (req, res) => {
   const currentId = req.user._id;
 
-  // Get unique users this user has chatted with
-  const messages = await messageModel
-    .find({
-      $or: [{ sender: currentId }, { receiver: currentId }],
-    })
+  const allMessages = await messageModel
+    .find({ $or: [{ sender: currentId }, { receiver: currentId }] })
     .sort({ createdAt: -1 });
 
-  const seenUsers = new Set();
-  const conversationUserIds = [];
+  const seenUserIds = new Set();
+  const uniquePartnerIds = [];
 
-  for (const msg of messages) {
-    const otherId =
+  for (const msg of allMessages) {
+    const partnerId =
       msg.sender.toString() === currentId.toString()
         ? msg.receiver.toString()
         : msg.sender.toString();
 
-    if (!seenUsers.has(otherId)) {
-      seenUsers.add(otherId);
-      conversationUserIds.push(otherId);
+    if (!seenUserIds.has(partnerId)) {
+      seenUserIds.add(partnerId);
+      uniquePartnerIds.push(partnerId);
     }
   }
 
-  const users = await userModel
-    .find({ _id: { $in: conversationUserIds } })
-    .select("username profilePic");
+  const partners = await userModel.find({ _id: { $in: uniquePartnerIds } }).select("username profilePic");
 
-  // Attach last message and unread count
   const conversations = await Promise.all(
-    users.map(async (user) => {
-      const lastMsg = await messageModel
+    partners.map(async (partner) => {
+      const lastMessage = await messageModel
         .findOne({
           $or: [
-            { sender: currentId, receiver: user._id },
-            { sender: user._id, receiver: currentId },
+            { sender: currentId, receiver: partner._id },
+            { sender: partner._id, receiver: currentId },
           ],
         })
         .sort({ createdAt: -1 });
 
-      const unread = await messageModel.countDocuments({
-        sender: user._id,
+      const unreadCount = await messageModel.countDocuments({
+        sender: partner._id,
         receiver: currentId,
         read: false,
       });
 
-      return { user, lastMessage: lastMsg, unreadCount: unread };
+      return { user: partner, lastMessage, unreadCount };
     })
   );
 
-  return res.status(200).json({ conversations });
+  res.status(200).json({ success: true, data: { conversations } });
 };
 
-// POST /api/messages  — send via REST (Socket.IO is primary)
 export const sendMessage = async (req, res) => {
   const { receiverId, text } = req.body;
   const senderId = req.user._id;
 
   if (!receiverId || !text?.trim()) {
-    return res.status(400).json({ message: "receiverId and text are required" });
+    return res.status(400).json({ success: false, error: "receiverId and text are required" });
   }
 
   const receiver = await userModel.findById(receiverId);
-  if (!receiver) return res.status(404).json({ message: "Receiver not found" });
+  if (!receiver) return res.status(404).json({ success: false, error: "Receiver not found" });
 
-  const message = await messageModel.create({
-    sender: senderId,
-    receiver: receiverId,
-    text: text.trim(),
-  });
+  const message = await messageModel.create({ sender: senderId, receiver: receiverId, text: text.trim() });
 
   const populated = await message.populate([
     { path: "sender", select: "username profilePic" },
     { path: "receiver", select: "username profilePic" },
   ]);
 
-  return res.status(201).json({ message: populated });
+  res.status(201).json({ success: true, data: { message: populated } });
 };

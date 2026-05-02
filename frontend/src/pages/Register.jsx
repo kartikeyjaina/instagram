@@ -68,19 +68,14 @@ function Register() {
 
     setLoading(true)
     try {
-      const response = await authService.register(
-        formData.username,
-        formData.email,
-        formData.password
-      )
-      
+      await authService.register(formData.username, formData.email, formData.password)
       setSuccessMessage('Registration successful! Redirecting...')
       setTimeout(() => {
         navigate('/feed')
       }, 1000)
     } catch (error) {
       setErrors({
-        submit: error.message || 'Registration failed. Please try again.',
+        submit: error.response?.data?.error || error.message || 'Registration failed. Please try again.',
       })
     } finally {
       setLoading(false)

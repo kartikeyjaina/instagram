@@ -1,13 +1,12 @@
 import { userModel } from "../models/user.model.js";
 import { notificationModel } from "../models/notification.model.js";
 
-// POST /api/users/:id/follow
 export const followUser = async (req, res) => {
   const targetId = req.params.id;
   const currentId = req.user._id.toString();
 
   if (targetId === currentId) {
-    return res.status(400).json({ message: "You cannot follow yourself" });
+    return res.status(400).json({ success: false, error: "You cannot follow yourself" });
   }
 
   const [target, current] = await Promise.all([
@@ -15,13 +14,11 @@ export const followUser = async (req, res) => {
     userModel.findById(currentId),
   ]);
 
-  if (!target) return res.status(404).json({ message: "User not found" });
+  if (!target) return res.status(404).json({ success: false, error: "User not found" });
 
-  const alreadyFollowing = current.following.some(
-    (id) => id.toString() === targetId
-  );
+  const alreadyFollowing = current.following.some((id) => id.toString() === targetId);
   if (alreadyFollowing) {
-    return res.status(400).json({ message: "Already following this user" });
+    return res.status(400).json({ success: false, error: "Already following this user" });
   }
 
   await Promise.all([
@@ -29,14 +26,8 @@ export const followUser = async (req, res) => {
     userModel.findByIdAndUpdate(targetId, { $addToSet: { followers: currentId } }),
   ]);
 
-  // Create notification
-  await notificationModel.create({
-    user: targetId,
-    actor: currentId,
-    type: "follow",
-  });
+  await notificationModel.create({ user: targetId, actor: currentId, type: "follow" });
 
-  // Emit real-time notification if socket map available
   const io = req.app.get("io");
   const onlineUsers = req.app.get("onlineUsers");
   if (io && onlineUsers) {
@@ -49,25 +40,24 @@ export const followUser = async (req, res) => {
     }
   }
 
-  return res.status(200).json({ message: "Followed successfully" });
+  res.status(200).json({ success: true, data: { message: "Followed successfully" } });
 };
 
-// POST /api/users/:id/unfollow
 export const unfollowUser = async (req, res) => {
   const targetId = req.params.id;
   const currentId = req.user._id.toString();
 
   if (targetId === currentId) {
-    return res.status(400).json({ message: "You cannot unfollow yourself" });
+    return res.status(400).json({ success: false, error: "You cannot unfollow yourself" });
   }
 
   const target = await userModel.findById(targetId);
-  if (!target) return res.status(404).json({ message: "User not found" });
+  if (!target) return res.status(404).json({ success: false, error: "User not found" });
 
   await Promise.all([
     userModel.findByIdAndUpdate(currentId, { $pull: { following: targetId } }),
     userModel.findByIdAndUpdate(targetId, { $pull: { followers: currentId } }),
   ]);
 
-  return res.status(200).json({ message: "Unfollowed successfully" });
+  res.status(200).json({ success: true, data: { message: "Unfollowed successfully" } });
 };

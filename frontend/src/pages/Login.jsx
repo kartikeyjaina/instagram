@@ -55,10 +55,7 @@ function Login() {
 
     setLoading(true)
     try {
-      const response = await authService.login(
-        formData.email,
-        formData.password
-      )
+      await authService.login(formData.email, formData.password)
       
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true')
@@ -70,7 +67,7 @@ function Login() {
       }, 1000)
     } catch (error) {
       setErrors({
-        submit: error.message || 'Login failed. Please try again.',
+        submit: error.response?.data?.error || error.message || 'Login failed. Please try again.',
       })
     } finally {
       setLoading(false)

@@ -23,9 +23,7 @@ Example: [{"caption": "...", "hashtags": ["#tag1", "#tag2"]}]
 Return ONLY the JSON array, no other text.`;
 
   const result = await model.generateContent(prompt);
-  const text = result.response.text().trim();
-
-  // Strip markdown code fences if present
-  const clean = text.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
-  return JSON.parse(clean);
+  const rawText = result.response.text().trim();
+  const cleanJson = rawText.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
+  return JSON.parse(cleanJson);
 };
