@@ -1,0 +1,8 @@
+import { apiClient } from "./client";
+
+export const aiService = {
+  generateCaption: async (context) => {
+    const res = await apiClient.post("/ai/generate-caption", { context });
+    return res.data.suggestions;
+  },
+};

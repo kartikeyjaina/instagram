@@ -76,8 +76,8 @@ function Register() {
       
       setSuccessMessage('Registration successful! Redirecting...')
       setTimeout(() => {
-        navigate('/dashboard')
-      }, 1500)
+        navigate('/feed')
+      }, 1000)
     } catch (error) {
       setErrors({
         submit: error.message || 'Registration failed. Please try again.',

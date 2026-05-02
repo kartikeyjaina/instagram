@@ -66,8 +66,8 @@ function Login() {
 
       setSuccessMessage('Welcome back! Redirecting...')
       setTimeout(() => {
-        navigate('/dashboard')
-      }, 1500)
+        navigate('/feed')
+      }, 1000)
     } catch (error) {
       setErrors({
         submit: error.message || 'Login failed. Please try again.',

@@ -1,0 +1,503 @@
+/* ── Profile Page ─────────────────────────────────────────────────────────── */
+.profile-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 16px 40px;
+}
+
+.profile-card {
+  background: rgba(20, 24, 50, 0.85);
+  border-radius: 28px;
+  padding: 48px 40px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 60px rgba(0, 212, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  width: 100%;
+  max-width: 520px;
+  animation: slideInUp 0.5s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Avatar ───────────────────────────────────────────────────────────────── */
+.profile-avatar-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+  position: relative;
+  z-index: 1;
+}
+
+.profile-avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid transparent;
+  background:
+    linear-gradient(rgba(20, 24, 50, 1), rgba(20, 24, 50, 1)) padding-box,
+    linear-gradient(135deg, #00d4ff, #ff006e) border-box;
+  box-shadow: 0 8px 30px rgba(0, 212, 255, 0.3);
+}
+
+.profile-avatar-fallback {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d4ff 0%, #ff006e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  font-weight: 800;
+  color: #fff;
+  border: 3px solid transparent;
+  box-shadow: 0 8px 30px rgba(0, 212, 255, 0.3);
+  text-transform: uppercase;
+}
+
+/* ── Info ─────────────────────────────────────────────────────────────────── */
+.profile-info {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.profile-username {
+  font-size: 28px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #00d4ff 0%, #ff006e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.profile-bio {
+  font-size: 15px;
+  color: #a0a0c0;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  min-height: 24px;
+}
+
+.profile-bio-empty {
+  font-style: italic;
+  color: #606080;
+}
+
+/* ── Stats ────────────────────────────────────────────────────────────────── */
+.profile-stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  padding: 20px 0;
+  border-top: 1px solid rgba(0, 212, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  margin-bottom: 28px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #707090;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ── Edit Button ──────────────────────────────────────────────────────────── */
+.btn-edit-profile {
+  width: 100%;
+  padding: 13px 24px;
+  background: transparent;
+  color: #00d4ff;
+  border: 2px solid rgba(0, 212, 255, 0.4);
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
+}
+
+.btn-edit-profile:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: #00d4ff;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* ── Skeleton ─────────────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  margin: 0 auto 28px;
+}
+
+.skeleton-line {
+  height: 16px;
+  margin: 0 auto 12px;
+}
+
+.skeleton-title {
+  height: 28px;
+  width: 60%;
+  margin: 0 auto 12px;
+}
+
+.skeleton-bio {
+  height: 14px;
+  width: 80%;
+  margin: 0 auto 8px;
+}
+
+.skeleton-bio-2 {
+  height: 14px;
+  width: 55%;
+  margin: 0 auto 24px;
+}
+
+.skeleton-stats {
+  height: 60px;
+  width: 100%;
+  margin-bottom: 28px;
+  border-radius: 12px;
+}
+
+.skeleton-btn {
+  height: 46px;
+  width: 100%;
+  border-radius: 14px;
+}
+
+/* ── Error State ──────────────────────────────────────────────────────────── */
+.profile-error {
+  text-align: center;
+  padding: 40px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.profile-error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.profile-error h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ff6b9d;
+  margin-bottom: 8px;
+}
+
+.profile-error p {
+  color: #707090;
+  font-size: 14px;
+}
+
+/* ── Modal Overlay ────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-card {
+  background: rgba(20, 24, 50, 0.97);
+  border-radius: 24px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 460px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 212, 255, 0.1);
+  animation: slideInUp 0.3s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.modal-title {
+  font-size: 22px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #00d4ff 0%, #ff006e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #707090;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Image Upload Area ────────────────────────────────────────────────────── */
+.image-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.image-preview-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.image-preview {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid transparent;
+  background:
+    linear-gradient(rgba(20, 24, 50, 1), rgba(20, 24, 50, 1)) padding-box,
+    linear-gradient(135deg, #00d4ff, #ff006e) border-box;
+}
+
+.image-preview-fallback {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d4ff 0%, #ff006e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.image-upload-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.image-preview-wrapper:hover .image-upload-overlay {
+  opacity: 1;
+}
+
+.image-upload-overlay svg {
+  color: #fff;
+  width: 24px;
+  height: 24px;
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: #707090;
+  text-align: center;
+}
+
+.upload-hint span {
+  color: #00d4ff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.upload-hint span:hover {
+  text-decoration: underline;
+}
+
+.uploading-indicator {
+  font-size: 12px;
+  color: #00d4ff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-top-color: #00d4ff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Modal Form ───────────────────────────────────────────────────────────── */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.modal-form .form-group {
+  margin-bottom: 0;
+}
+
+.char-count {
+  font-size: 11px;
+  color: #707090;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.char-count.near-limit {
+  color: #ff6b9d;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn-cancel {
+  flex: 1;
+  padding: 13px 20px;
+  background: transparent;
+  color: #a0a0c0;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.btn-save {
+  flex: 2;
+  padding: 13px 20px;
+  background: linear-gradient(135deg, #00d4ff 0%, #ff006e 100%);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  box-shadow: 0 8px 24px rgba(0, 212, 255, 0.25);
+}
+
+.btn-save:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 212, 255, 0.35);
+}
+
+.btn-save:disabled,
+.btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .profile-card {
+    padding: 32px 24px;
+  }
+
+  .modal-card {
+    padding: 28px 20px;
+  }
+
+  .profile-username {
+    font-size: 24px;
+  }
+
+  .profile-stats {
+    gap: 24px;
+  }
+}

@@ -16,11 +16,13 @@ Beautiful authentication pages for Instagram 2.0 built with React and modern sty
 ## Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Start the development server:
+
 ```bash
 npm start
 ```
@@ -68,16 +70,20 @@ The frontend communicates with the following backend endpoints:
 ## Customization
 
 ### Colors
+
 To change the color scheme, modify the gradient colors in:
+
 - `src/styles/global.css` - Background gradient
 - `src/styles/Auth.css` - Primary button gradient
 
 Current gradient: `#667eea` to `#764ba2` (Purple to Violet)
 
 ### API Base URL
+
 To change the API endpoint, modify in `src/api/authService.js`:
+
 ```javascript
-const API_BASE_URL = 'http://localhost:3000/api/auth'
+const API_BASE_URL = "http://localhost:3000/api/auth";
 ```
 
 ## Browser Support
