@@ -12,6 +12,7 @@ export const registerUser = async ({ username, email, password }) => {
   const existingUser = await userModel.findOne({
     $or: [{ username }, { email }],
   });
+  
   if (existingUser) {
     const conflict = new Error("Username or email already exists");
     conflict.statusCode = 409;

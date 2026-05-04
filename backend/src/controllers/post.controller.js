@@ -1,5 +1,7 @@
 import { postModel } from "../models/post.model.js";
 import { userModel } from "../models/user.model.js";
+import { likeModel } from "../models/like.model.js";
+import { followModel } from "../models/follow.model.js";
 import { notificationModel } from "../models/notification.model.js";
 import { imagekit } from "../config/imagekit.config.js";
 import { toFile } from "@imagekit/nodejs";
@@ -27,6 +29,25 @@ const emitNotificationToUser = (req, targetUserId, payload) => {
   if (socketId) io.to(socketId).emit("notification", payload);
 };
 
+const enhancePostsWithLikeData = async (posts, userId) => {
+  if (!userId || posts.length === 0) return posts;
+
+  const postIds = posts.map((p) => p._id);
+  const userLikes = await likeModel.find({
+    user: userId,
+    post: { $in: postIds },
+  });
+
+  const likedPostIds = new Set(userLikes.map((l) => l.post.toString()));
+
+  return posts.map((post) => {
+    const postObj = post.toObject ? post.toObject() : post;
+    const isLiked = likedPostIds.has(post._id.toString());
+    postObj.likes = isLiked ? [userId.toString()] : [];
+    return postObj;
+  });
+};
+
 export const createPost = async (req, res) => {
   const userId = req.user._id;
   const { caption } = req.body;
@@ -37,12 +58,10 @@ export const createPost = async (req, res) => {
   const { mimetype, size, originalname, buffer } = req.file;
 
   if (!ALLOWED_MIME_TYPES.includes(mimetype)) {
-    return res
-      .status(400)
-      .json({
-        success: false,
-        error: "Invalid file type. Only images allowed.",
-      });
+    return res.status(400).json({
+      success: false,
+      error: "Invalid file type. Only images allowed.",
+    });
   }
   if (size > MAX_POST_IMAGE_BYTES) {
     return res
@@ -66,8 +85,10 @@ export const createPost = async (req, res) => {
   await userModel.findByIdAndUpdate(userId, { $inc: { postsCount: 1 } });
 
   const populated = await post.populate("user", "username profilePic");
+  const postObj = populated.toObject();
+  postObj.likes = [];
 
-  res.status(201).json({ success: true, data: { post: populated } });
+  res.status(201).json({ success: true, data: { post: postObj } });
 };
 
 export const getAllPosts = async (req, res) => {
@@ -85,12 +106,12 @@ export const getAllPosts = async (req, res) => {
     postModel.countDocuments(),
   ]);
 
-  res
-    .status(200)
-    .json({
-      success: true,
-      data: { posts, hasMore: skip + posts.length < total, page },
-    });
+  const enhancedPosts = await enhancePostsWithLikeData(posts, req.user?._id);
+
+  res.status(200).json({
+    success: true,
+    data: { posts: enhancedPosts, hasMore: skip + posts.length < total, page },
+  });
 };
 
 export const getUserPosts = async (req, res) => {
@@ -109,12 +130,12 @@ export const getUserPosts = async (req, res) => {
     postModel.countDocuments({ user: id }),
   ]);
 
-  res
-    .status(200)
-    .json({
-      success: true,
-      data: { posts, hasMore: skip + posts.length < total },
-    });
+  const enhancedPosts = await enhancePostsWithLikeData(posts, req.user?._id);
+
+  res.status(200).json({
+    success: true,
+    data: { posts: enhancedPosts, hasMore: skip + posts.length < total },
+  });
 };
 
 export const deletePost = async (req, res) => {
@@ -139,11 +160,22 @@ export const likePost = async (req, res) => {
   const userId = req.user._id;
 
   const post = await postModel
-    .findByIdAndUpdate(id, { $addToSet: { likes: userId } }, { new: true })
+    .findById(id)
     .populate("user", "username profilePic");
-
   if (!post)
     return res.status(404).json({ success: false, error: "Post not found" });
+
+  const existingLike = await likeModel.findOne({ user: userId, post: id });
+  if (existingLike) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Already liked this post" });
+  }
+
+  await Promise.all([
+    likeModel.create({ user: userId, post: id }),
+    postModel.findByIdAndUpdate(id, { $inc: { likesCount: 1 } }),
+  ]);
 
   const isNotSelfLike = post.user._id.toString() !== userId.toString();
   if (isNotSelfLike) {
@@ -160,32 +192,34 @@ export const likePost = async (req, res) => {
     });
   }
 
-  res
-    .status(200)
-    .json({
-      success: true,
-      data: { likes: post.likes, likesCount: post.likes.length },
-    });
+  const likesCount = await likeModel.countDocuments({ post: id });
+  res.status(200).json({
+    success: true,
+    data: { likes: [userId.toString()], likesCount },
+  });
 };
 
 export const unlikePost = async (req, res) => {
   const { id } = req.params;
   const userId = req.user._id;
 
-  const post = await postModel.findByIdAndUpdate(
-    id,
-    { $pull: { likes: userId } },
-    { new: true },
-  );
+  const post = await postModel.findById(id);
   if (!post)
     return res.status(404).json({ success: false, error: "Post not found" });
 
-  res
-    .status(200)
-    .json({
-      success: true,
-      data: { likes: post.likes, likesCount: post.likes.length },
-    });
+  await Promise.all([
+    likeModel.deleteOne({ user: userId, post: id }),
+    postModel.findByIdAndUpdate(id, {
+      $inc: { likesCount: -1 },
+      $min: { likesCount: 0 },
+    }),
+  ]);
+
+  const likesCount = await likeModel.countDocuments({ post: id });
+  res.status(200).json({
+    success: true,
+    data: { likes: [], likesCount },
+  });
 };
 
 export const getFeed = async (req, res) => {
@@ -194,8 +228,10 @@ export const getFeed = async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  const currentUser = await userModel.findById(userId).select("following");
-  const feedUserIds = [userId, ...currentUser.following];
+  const followingIds = await followModel
+    .find({ follower: userId })
+    .select("following");
+  const feedUserIds = [userId, ...followingIds.map((f) => f.following)];
 
   const [posts, total] = await Promise.all([
     postModel
@@ -207,12 +243,12 @@ export const getFeed = async (req, res) => {
     postModel.countDocuments({ user: { $in: feedUserIds } }),
   ]);
 
-  res
-    .status(200)
-    .json({
-      success: true,
-      data: { posts, hasMore: skip + posts.length < total, page },
-    });
+  const enhancedPosts = await enhancePostsWithLikeData(posts, userId);
+
+  res.status(200).json({
+    success: true,
+    data: { posts: enhancedPosts, hasMore: skip + posts.length < total, page },
+  });
 };
 
 export const savePost = async (req, res) => {
@@ -236,5 +272,42 @@ export const getSavedPosts = async (req, res) => {
     options: { sort: { createdAt: -1 } },
   });
 
-  res.status(200).json({ success: true, data: { posts: user.savedPosts } });
+  const enhancedPosts = await enhancePostsWithLikeData(
+    user.savedPosts,
+    req.user._id,
+  );
+
+  res.status(200).json({ success: true, data: { posts: enhancedPosts } });
+};
+
+export const checkIfLiked = async (userId, postId) => {
+  const like = await likeModel.findOne({ user: userId, post: postId });
+  return !!like;
+};
+
+export const batchCheckIfLiked = async (userId, postIds) => {
+  const likes = await likeModel.find({
+    user: userId,
+    post: { $in: postIds },
+  });
+  const likedSet = new Set(likes.map((l) => l.post.toString()));
+  return postIds.map((id) => likedSet.has(id.toString()));
+};
+
+export const getPostLikes = async (postId, limit = 20, skip = 0) => {
+  return await likeModel
+    .find({ post: postId })
+    .select("user")
+    .populate("user", "username profilePic")
+    .limit(limit)
+    .skip(skip);
+};
+
+export const getLikedPosts = async (userId, limit = 20, skip = 0) => {
+  return await likeModel
+    .find({ user: userId })
+    .select("post")
+    .populate("post", "imageUrl caption likesCount")
+    .limit(limit)
+    .skip(skip);
 };

@@ -1,4 +1,5 @@
 import { userModel } from "../models/user.model.js";
+import { followModel } from "../models/follow.model.js";
 
 export const getUserProfile = async (req, res) => {
   const { id } = req.params;
@@ -8,9 +9,11 @@ export const getUserProfile = async (req, res) => {
   if (!user)
     return res.status(404).json({ success: false, error: "User not found" });
 
-  const isFollowing = currentUserId
-    ? user.followers.some((fid) => fid.toString() === currentUserId)
-    : false;
+  let isFollowing = false;
+  if (currentUserId) {
+    const follow = await followModel.findOne({ follower: currentUserId, following: id });
+    isFollowing = !!follow;
+  }
 
   res.status(200).json({
     success: true,
@@ -23,8 +26,8 @@ export const getUserProfile = async (req, res) => {
         bio: user.bio,
         profilePic: user.profilePic,
         postsCount: user.postsCount,
-        followersCount: user.followers.length,
-        followingCount: user.following.length,
+        followersCount: user.followersCount,
+        followingCount: user.followingCount,
         isFollowing,
         createdAt: user.createdAt,
       },
@@ -115,8 +118,8 @@ export const updateUserProfile = async (req, res) => {
         bio: updatedUser.bio,
         profilePic: updatedUser.profilePic,
         postsCount: updatedUser.postsCount,
-        followersCount: updatedUser.followers.length,
-        followingCount: updatedUser.following.length,
+        followersCount: updatedUser.followersCount,
+        followingCount: updatedUser.followingCount,
       },
     },
   });

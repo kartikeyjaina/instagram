@@ -10,16 +10,25 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     const user = authService.getUser();
-    if (!user) return;
+    const token = authService.getToken();
+    if (!user || !token) return;
 
     const socket = io("http://localhost:4000", {
-      query: { userId: user.id || user._id },
+      auth: { token },
       transports: ["websocket"],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
     });
 
     socketRef.current = socket;
 
     socket.on("online_users", (users) => setOnlineUsers(users));
+
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error.message);
+    });
 
     return () => {
       socket.disconnect();

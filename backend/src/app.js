@@ -31,7 +31,7 @@ export const createApp = () => {
     try {
       console.log(`[req] ${req.method} ${req.originalUrl}`);
     } catch (err) {
-      // ignore logging errors
+      console.error("Failed to log request:", err);
     }
     next();
   });

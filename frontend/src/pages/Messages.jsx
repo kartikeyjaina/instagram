@@ -23,15 +23,23 @@ function Messages() {
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [messageStatuses, setMessageStatuses] = useState({});
   const socketRef = useRef(null);
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const selectedUserId = selectedUser?._id || selectedUser?.id;
 
   useEffect(() => {
+    const token = authService.getToken();
+    if (!token) return;
+
     const socket = io("http://localhost:4000", {
-      query: { userId: currentUserId },
+      auth: { token },
       transports: ["websocket"],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
     });
 
     socketRef.current = socket;
@@ -41,6 +49,16 @@ function Messages() {
         const exists = prev.some((m) => m._id === msg._id);
         return exists ? prev : [...prev, msg];
       });
+      socketRef.current?.emit("message_seen", { messageId: msg._id });
+      setMessageStatuses((prev) => ({ ...prev, [msg._id]: "seen" }));
+    });
+
+    socket.on("message_delivered", ({ messageId }) => {
+      setMessageStatuses((prev) => ({ ...prev, [messageId]: "delivered" }));
+    });
+
+    socket.on("message_seen", ({ messageId, status }) => {
+      setMessageStatuses((prev) => ({ ...prev, [messageId]: status }));
     });
 
     socket.on("typing", ({ senderId }) => {
@@ -51,8 +69,12 @@ function Messages() {
       if (senderId === selectedUserId) setIsTyping(false);
     });
 
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error.message);
+    });
+
     return () => socket.disconnect();
-  }, [currentUserId, selectedUserId]);
+  }, [selectedUserId]);
 
   useEffect(() => {
     messageService
@@ -124,7 +146,6 @@ function Messages() {
     const payloadText = text.trim();
     setText("");
 
-    // Send via API; server will persist and emit over sockets to recipients
     messageService
       .sendMessage(selectedUserId, payloadText)
       .then((msg) => {
@@ -135,13 +156,11 @@ function Messages() {
         });
       })
       .catch((err) => {
-        // If API route is missing, fallback to socket emit (server socket persists too)
         if (err?.response?.status === 404) {
           console.warn(
             "API /messages returned 404, falling back to socket.emit",
           );
           socketRef.current?.emit("send_message", {
-            senderId: currentUserId,
             receiverId: selectedUserId,
             text: payloadText,
           });
@@ -151,10 +170,8 @@ function Messages() {
         toast.error("Failed to send message");
       });
 
-    // UX: notify recipient we're done typing
     socketRef.current?.emit("stop_typing", {
       receiverId: selectedUserId,
-      senderId: currentUserId,
     });
   };
 
@@ -164,13 +181,11 @@ function Messages() {
 
     socketRef.current?.emit("typing", {
       receiverId: selectedUserId,
-      senderId: currentUserId,
     });
     clearTimeout(typingTimeout.current);
     typingTimeout.current = setTimeout(() => {
       socketRef.current?.emit("stop_typing", {
         receiverId: selectedUserId,
-        senderId: currentUserId,
       });
     }, 1500);
   };
@@ -283,6 +298,21 @@ function Messages() {
                       (msg.sender?._id || msg.sender) === currentUserId ||
                       msg.sender?._id?.toString() === currentUserId?.toString();
 
+                    const status =
+                      messageStatuses[msg._id] || msg.status || "sent";
+                    const statusIcon =
+                      status === "seen"
+                        ? "✓✓"
+                        : status === "delivered"
+                          ? "✓✓"
+                          : "✓";
+                    const statusColor =
+                      status === "seen"
+                        ? "#3b82f6"
+                        : status === "delivered"
+                          ? "#6b7280"
+                          : "#9ca3af";
+
                     return (
                       <motion.div
                         key={msg._id}
@@ -294,15 +324,43 @@ function Messages() {
                           className={`message-bubble ${isMine ? "message-bubble-me" : ""}`}
                         >
                           <p className="post-caption">{msg.text}</p>
-                          <p className="field-note">
-                            {formatDistanceToNow(new Date(msg.createdAt), {
-                              addSuffix: true,
-                            })}
-                          </p>
+                          <div
+                            className="row-between"
+                            style={{ marginTop: "4px" }}
+                          >
+                            <p className="field-note">
+                              {formatDistanceToNow(new Date(msg.createdAt), {
+                                addSuffix: true,
+                              })}
+                            </p>
+                            {isMine && (
+                              <span
+                                className="field-note"
+                                style={{ color: statusColor, fontSize: "12px" }}
+                              >
+                                {statusIcon}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </motion.div>
                     );
                   })
+                )}
+                {isTyping && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="row-start"
+                  >
+                    <div className="message-bubble">
+                      <div className="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
+                  </motion.div>
                 )}
                 <div ref={bottomRef} />
               </div>

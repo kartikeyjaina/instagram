@@ -2,7 +2,7 @@ import http from "http";
 import { createApp } from "./src/app.js";
 import { connectToDatabase } from "./src/config/db.config.js";
 import { env } from "./src/config/env.config.js";
-import { initializeSocket } from "./src/socket/index.js";
+import { initializeSocket } from "./src/socket/socket.js";
 
 const start = async () => {
   await connectToDatabase(env.MONGO_URI);
