@@ -4,7 +4,13 @@ import { notificationModel } from "../models/notification.model.js";
 import { imagekit } from "../config/imagekit.config.js";
 import { toFile } from "@imagekit/nodejs";
 
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
 const MAX_POST_IMAGE_BYTES = 10 * 1024 * 1024;
 
 const sanitizeFilename = (originalname) =>
@@ -25,15 +31,23 @@ export const createPost = async (req, res) => {
   const userId = req.user._id;
   const { caption } = req.body;
 
-  if (!req.file) return res.status(400).json({ success: false, error: "Image is required" });
+  if (!req.file)
+    return res.status(400).json({ success: false, error: "Image is required" });
 
   const { mimetype, size, originalname, buffer } = req.file;
 
   if (!ALLOWED_MIME_TYPES.includes(mimetype)) {
-    return res.status(400).json({ success: false, error: "Invalid file type. Only images allowed." });
+    return res
+      .status(400)
+      .json({
+        success: false,
+        error: "Invalid file type. Only images allowed.",
+      });
   }
   if (size > MAX_POST_IMAGE_BYTES) {
-    return res.status(400).json({ success: false, error: "File too large. Max 10 MB." });
+    return res
+      .status(400)
+      .json({ success: false, error: "File too large. Max 10 MB." });
   }
 
   const uploadResponse = await imagekit.files.upload({
@@ -62,11 +76,21 @@ export const getAllPosts = async (req, res) => {
   const skip = (page - 1) * limit;
 
   const [posts, total] = await Promise.all([
-    postModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit).populate("user", "username profilePic"),
+    postModel
+      .find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("user", "username profilePic"),
     postModel.countDocuments(),
   ]);
 
-  res.status(200).json({ success: true, data: { posts, hasMore: skip + posts.length < total, page } });
+  res
+    .status(200)
+    .json({
+      success: true,
+      data: { posts, hasMore: skip + posts.length < total, page },
+    });
 };
 
 export const getUserPosts = async (req, res) => {
@@ -76,11 +100,21 @@ export const getUserPosts = async (req, res) => {
   const skip = (page - 1) * limit;
 
   const [posts, total] = await Promise.all([
-    postModel.find({ user: id }).sort({ createdAt: -1 }).skip(skip).limit(limit).populate("user", "username profilePic"),
+    postModel
+      .find({ user: id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("user", "username profilePic"),
     postModel.countDocuments({ user: id }),
   ]);
 
-  res.status(200).json({ success: true, data: { posts, hasMore: skip + posts.length < total } });
+  res
+    .status(200)
+    .json({
+      success: true,
+      data: { posts, hasMore: skip + posts.length < total },
+    });
 };
 
 export const deletePost = async (req, res) => {
@@ -88,7 +122,8 @@ export const deletePost = async (req, res) => {
   const userId = req.user._id.toString();
 
   const post = await postModel.findById(id);
-  if (!post) return res.status(404).json({ success: false, error: "Post not found" });
+  if (!post)
+    return res.status(404).json({ success: false, error: "Post not found" });
   if (post.user.toString() !== userId) {
     return res.status(403).json({ success: false, error: "Not authorized" });
   }
@@ -107,11 +142,17 @@ export const likePost = async (req, res) => {
     .findByIdAndUpdate(id, { $addToSet: { likes: userId } }, { new: true })
     .populate("user", "username profilePic");
 
-  if (!post) return res.status(404).json({ success: false, error: "Post not found" });
+  if (!post)
+    return res.status(404).json({ success: false, error: "Post not found" });
 
   const isNotSelfLike = post.user._id.toString() !== userId.toString();
   if (isNotSelfLike) {
-    await notificationModel.create({ user: post.user._id, actor: userId, type: "like", referenceId: post._id });
+    await notificationModel.create({
+      user: post.user._id,
+      actor: userId,
+      type: "like",
+      referenceId: post._id,
+    });
     emitNotificationToUser(req, post.user._id, {
       type: "like",
       actor: { id: userId, username: req.user.username },
@@ -119,17 +160,32 @@ export const likePost = async (req, res) => {
     });
   }
 
-  res.status(200).json({ success: true, data: { likes: post.likes, likesCount: post.likes.length } });
+  res
+    .status(200)
+    .json({
+      success: true,
+      data: { likes: post.likes, likesCount: post.likes.length },
+    });
 };
 
 export const unlikePost = async (req, res) => {
   const { id } = req.params;
   const userId = req.user._id;
 
-  const post = await postModel.findByIdAndUpdate(id, { $pull: { likes: userId } }, { new: true });
-  if (!post) return res.status(404).json({ success: false, error: "Post not found" });
+  const post = await postModel.findByIdAndUpdate(
+    id,
+    { $pull: { likes: userId } },
+    { new: true },
+  );
+  if (!post)
+    return res.status(404).json({ success: false, error: "Post not found" });
 
-  res.status(200).json({ success: true, data: { likes: post.likes, likesCount: post.likes.length } });
+  res
+    .status(200)
+    .json({
+      success: true,
+      data: { likes: post.likes, likesCount: post.likes.length },
+    });
 };
 
 export const getFeed = async (req, res) => {
@@ -142,20 +198,34 @@ export const getFeed = async (req, res) => {
   const feedUserIds = [userId, ...currentUser.following];
 
   const [posts, total] = await Promise.all([
-    postModel.find({ user: { $in: feedUserIds } }).sort({ createdAt: -1 }).skip(skip).limit(limit).populate("user", "username profilePic"),
+    postModel
+      .find({ user: { $in: feedUserIds } })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("user", "username profilePic"),
     postModel.countDocuments({ user: { $in: feedUserIds } }),
   ]);
 
-  res.status(200).json({ success: true, data: { posts, hasMore: skip + posts.length < total, page } });
+  res
+    .status(200)
+    .json({
+      success: true,
+      data: { posts, hasMore: skip + posts.length < total, page },
+    });
 };
 
 export const savePost = async (req, res) => {
-  await userModel.findByIdAndUpdate(req.user._id, { $addToSet: { savedPosts: req.params.id } });
+  await userModel.findByIdAndUpdate(req.user._id, {
+    $addToSet: { savedPosts: req.params.id },
+  });
   res.status(200).json({ success: true, data: { message: "Post saved" } });
 };
 
 export const unsavePost = async (req, res) => {
-  await userModel.findByIdAndUpdate(req.user._id, { $pull: { savedPosts: req.params.id } });
+  await userModel.findByIdAndUpdate(req.user._id, {
+    $pull: { savedPosts: req.params.id },
+  });
   res.status(200).json({ success: true, data: { message: "Post unsaved" } });
 };
 

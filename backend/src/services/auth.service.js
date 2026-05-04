@@ -9,7 +9,9 @@ const buildPublicUser = (user) => ({
 });
 
 export const registerUser = async ({ username, email, password }) => {
-  const existingUser = await userModel.findOne({ $or: [{ username }, { email }] });
+  const existingUser = await userModel.findOne({
+    $or: [{ username }, { email }],
+  });
   if (existingUser) {
     const conflict = new Error("Username or email already exists");
     conflict.statusCode = 409;
@@ -24,7 +26,7 @@ export const registerUser = async ({ username, email, password }) => {
 };
 
 export const loginUser = async ({ email, password }) => {
-  const user = await userModel.findOne({ email });
+  const user = await userModel.findOne({ email }).select("+passwordHash");
   if (!user) {
     const err = new Error("Invalid email or password");
     err.statusCode = 401;

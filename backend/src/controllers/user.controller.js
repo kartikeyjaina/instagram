@@ -5,7 +5,8 @@ export const getUserProfile = async (req, res) => {
   const currentUserId = req.user?._id?.toString();
 
   const user = await userModel.findById(id).select("-passwordHash");
-  if (!user) return res.status(404).json({ success: false, error: "User not found" });
+  if (!user)
+    return res.status(404).json({ success: false, error: "User not found" });
 
   const isFollowing = currentUserId
     ? user.followers.some((fid) => fid.toString() === currentUserId)
@@ -15,6 +16,7 @@ export const getUserProfile = async (req, res) => {
     success: true,
     data: {
       user: {
+        _id: user._id,
         id: user._id,
         username: user.username,
         email: user.email,
@@ -37,43 +39,76 @@ export const updateUserProfile = async (req, res) => {
 
   if (username !== undefined) {
     const trimmed = username.trim();
-    if (trimmed.length < 3) return res.status(400).json({ success: false, error: "Username must be at least 3 characters" });
-    if (trimmed.length > 30) return res.status(400).json({ success: false, error: "Username cannot exceed 30 characters" });
+    if (trimmed.length < 3)
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error: "Username must be at least 3 characters",
+        });
+    if (trimmed.length > 30)
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error: "Username cannot exceed 30 characters",
+        });
     updates.username = trimmed;
   }
 
   if (bio !== undefined) {
     const trimmed = bio.trim();
-    if (trimmed.length > 200) return res.status(400).json({ success: false, error: "Bio cannot exceed 200 characters" });
+    if (trimmed.length > 200)
+      return res
+        .status(400)
+        .json({ success: false, error: "Bio cannot exceed 200 characters" });
     updates.bio = trimmed;
   }
 
   if (profilePic !== undefined) {
-    try { new URL(profilePic); } catch {
-      return res.status(400).json({ success: false, error: "profilePic must be a valid URL" });
+    try {
+      new URL(profilePic);
+    } catch {
+      return res
+        .status(400)
+        .json({ success: false, error: "profilePic must be a valid URL" });
     }
     updates.profilePic = profilePic;
   }
 
   if (Object.keys(updates).length === 0) {
-    return res.status(400).json({ success: false, error: "No valid fields provided for update" });
+    return res
+      .status(400)
+      .json({ success: false, error: "No valid fields provided for update" });
   }
 
   if (updates.username) {
-    const taken = await userModel.findOne({ username: updates.username, _id: { $ne: authUserId } });
-    if (taken) return res.status(409).json({ success: false, error: "Username is already taken" });
+    const taken = await userModel.findOne({
+      username: updates.username,
+      _id: { $ne: authUserId },
+    });
+    if (taken)
+      return res
+        .status(409)
+        .json({ success: false, error: "Username is already taken" });
   }
 
   const updatedUser = await userModel
-    .findByIdAndUpdate(authUserId, { $set: updates }, { new: true, runValidators: true })
+    .findByIdAndUpdate(
+      authUserId,
+      { $set: updates },
+      { new: true, runValidators: true },
+    )
     .select("-passwordHash");
 
-  if (!updatedUser) return res.status(404).json({ success: false, error: "User not found" });
+  if (!updatedUser)
+    return res.status(404).json({ success: false, error: "User not found" });
 
   res.status(200).json({
     success: true,
     data: {
       user: {
+        _id: updatedUser._id,
         id: updatedUser._id,
         username: updatedUser.username,
         email: updatedUser.email,
@@ -89,7 +124,8 @@ export const updateUserProfile = async (req, res) => {
 
 export const searchUsers = async (req, res) => {
   const { q } = req.query;
-  if (!q?.trim()) return res.status(400).json({ success: false, error: "Query is required" });
+  if (!q?.trim())
+    return res.status(400).json({ success: false, error: "Query is required" });
 
   const users = await userModel
     .find({ username: { $regex: q.trim(), $options: "i" } })

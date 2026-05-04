@@ -1,6 +1,9 @@
 import { useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { profileService } from "../api/profileService";
+import Button from "./ui/Button";
+import Input from "./ui/Input";
+import Card from "./ui/Card";
 
 const MAX_BIO = 200;
 
@@ -23,7 +26,6 @@ function EditProfileModal({ profile, onClose, onSaved }) {
 
   const fileInputRef = useRef(null);
 
-  // ── Image selection & upload ─────────────────────────────────────────────
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -51,7 +53,6 @@ function EditProfileModal({ profile, onClose, onSaved }) {
     }
   };
 
-  // ── Validation ───────────────────────────────────────────────────────────
   const validate = () => {
     const errs = {};
     if (!username.trim()) {
@@ -67,7 +68,6 @@ function EditProfileModal({ profile, onClose, onSaved }) {
     return errs;
   };
 
-  // ── Submit ───────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -91,7 +91,7 @@ function EditProfileModal({ profile, onClose, onSaved }) {
         const parsed = JSON.parse(stored);
         localStorage.setItem(
           "user",
-          JSON.stringify({ ...parsed, username: updatedUser.username })
+          JSON.stringify({ ...parsed, username: updatedUser.username }),
         );
       }
 
@@ -110,61 +110,64 @@ function EditProfileModal({ profile, onClose, onSaved }) {
   const bioNearLimit = bio.length > MAX_BIO * 0.85;
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        {/* Header */}
-        <div className="modal-header">
-          <h2 className="modal-title" id="modal-title">Edit Profile</h2>
-          <button
-            className="modal-close"
+    <div
+      className="modal-overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <Card
+        className="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
+        <div className="modal-header row-between">
+          <h2 className="modal-title" id="modal-title">
+            Edit Profile
+          </h2>
+          <Button
+            variant="ghost"
             onClick={onClose}
             aria-label="Close modal"
             disabled={isDisabled}
           >
-            ✕
-          </button>
+            Close
+          </Button>
         </div>
 
-        {/* Avatar upload */}
-        <div className="image-upload-area">
+        <div className="modal-body stack-md">
           <div
-            className="image-preview-wrapper"
+            className="dropzone"
             onClick={() => !isDisabled && fileInputRef.current?.click()}
             role="button"
             tabIndex={0}
             aria-label="Change profile picture"
-            onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+            onKeyDown={(e) =>
+              e.key === "Enter" && fileInputRef.current?.click()
+            }
           >
             {previewUrl ? (
               <img
                 src={previewUrl}
                 alt="Profile preview"
-                className="image-preview"
-                onError={(e) => { e.currentTarget.style.display = "none"; }}
+                className="cover-preview"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
               />
             ) : (
-              <div className="image-preview-fallback">
+              <div className="avatar-fallback avatar-fallback-lg">
                 {username.charAt(0) || "?"}
               </div>
             )}
-            <div className="image-upload-overlay" aria-hidden="true">
-              {/* Camera icon */}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                <circle cx="12" cy="13" r="4" />
-              </svg>
-            </div>
           </div>
 
           {uploading ? (
-            <div className="uploading-indicator">
-              <div className="spinner-small" />
-              Uploading…
+            <div className="row-between">
+              <div className="spinner" /> Uploading
             </div>
           ) : (
-            <p className="upload-hint">
-              <span onClick={() => fileInputRef.current?.click()}>Click the photo</span> to change it
-              <br />JPG, PNG, WebP or GIF · max 5 MB
+            <p className="field-note">
+              Click the photo to change it. JPG, PNG, WebP or GIF, max 5 MB.
             </p>
           )}
 
@@ -172,75 +175,71 @@ function EditProfileModal({ profile, onClose, onSaved }) {
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-            style={{ display: "none" }}
+            hidden
             onChange={handleFileChange}
           />
-        </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="modal-form" noValidate>
-          {/* Username */}
-          <div className="form-group">
-            <label htmlFor="edit-username">Username</label>
-            <input
-              id="edit-username"
-              type="text"
-              value={username}
-              onChange={(e) => {
-                setUsername(e.target.value);
-                if (errors.username) setErrors((p) => ({ ...p, username: "" }));
-              }}
-              className={`form-input ${errors.username ? "error" : ""}`}
-              placeholder="Your username"
-              maxLength={30}
-              disabled={isDisabled}
-            />
-            {errors.username && <span className="error-text">{errors.username}</span>}
-          </div>
-
-          {/* Bio */}
-          <div className="form-group">
-            <label htmlFor="edit-bio">Bio</label>
-            <textarea
-              id="edit-bio"
-              value={bio}
-              onChange={(e) => {
-                setBio(e.target.value);
-                if (errors.bio) setErrors((p) => ({ ...p, bio: "" }));
-              }}
-              className={`form-input ${errors.bio ? "error" : ""}`}
-              placeholder="Tell the world about yourself…"
-              rows={3}
-              maxLength={MAX_BIO}
-              disabled={isDisabled}
-              style={{ resize: "vertical", minHeight: "80px" }}
-            />
-            <div className={`char-count ${bioNearLimit ? "near-limit" : ""}`}>
-              {bio.length} / {MAX_BIO}
+          <form onSubmit={handleSubmit} className="form-stack" noValidate>
+            <div className="field">
+              <label htmlFor="edit-username" className="field-label">
+                Username
+              </label>
+              <Input
+                id="edit-username"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (errors.username)
+                    setErrors((p) => ({ ...p, username: "" }));
+                }}
+                placeholder="Your username"
+                maxLength={30}
+                disabled={isDisabled}
+              />
+              {errors.username && (
+                <span className="field-error">{errors.username}</span>
+              )}
             </div>
-            {errors.bio && <span className="error-text">{errors.bio}</span>}
-          </div>
 
-          {/* Actions */}
-          <div className="modal-actions">
-            <button
-              type="button"
-              className="btn-cancel"
-              onClick={onClose}
-              disabled={isDisabled}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn-save"
-              disabled={isDisabled}
-            >
-              {saving ? "Saving…" : "Save Changes"}
-            </button>
-          </div>
-        </form>
-      </div>
+            <div className="field">
+              <label htmlFor="edit-bio" className="field-label">
+                Bio
+              </label>
+              <Input
+                multiline
+                id="edit-bio"
+                value={bio}
+                onChange={(e) => {
+                  setBio(e.target.value);
+                  if (errors.bio) setErrors((p) => ({ ...p, bio: "" }));
+                }}
+                placeholder="Tell the world about yourself…"
+                rows={3}
+                maxLength={MAX_BIO}
+                disabled={isDisabled}
+              />
+              <div className="field-note">
+                {bio.length} / {MAX_BIO}
+              </div>
+              {errors.bio && <span className="field-error">{errors.bio}</span>}
+            </div>
+
+            <div className="modal-footer">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onClose}
+                disabled={isDisabled}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isDisabled}>
+                {saving ? "Saving..." : "Save changes"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Card>
     </div>
   );
 }

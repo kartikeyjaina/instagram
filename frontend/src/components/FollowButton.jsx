@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { followService } from "../api/followService";
 import toast from "react-hot-toast";
+import Button from "./ui/Button";
 
 function FollowButton({ userId, initialIsFollowing, onFollowChange }) {
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
@@ -29,15 +30,22 @@ function FollowButton({ userId, initialIsFollowing, onFollowChange }) {
   };
 
   return (
-    <motion.button
-      whileTap={{ scale: 0.95 }}
-      onClick={handleClick}
-      disabled={loading}
-      className={isFollowing ? "btn-ghost" : "btn-primary"}
-      style={{ minWidth: "110px" }}
-    >
-      {loading ? <div className="spinner mx-auto" style={{ width: 16, height: 16 }} /> : isFollowing ? "Following" : "Follow"}
-    </motion.button>
+    <motion.div whileTap={{ scale: 0.95 }}>
+      <Button
+        onClick={handleClick}
+        disabled={loading}
+        variant={isFollowing ? "secondary" : "primary"}
+        block
+      >
+        {loading ? (
+          <div className="spinner" />
+        ) : isFollowing ? (
+          "Following"
+        ) : (
+          "Follow"
+        )}
+      </Button>
+    </motion.div>
   );
 }
 

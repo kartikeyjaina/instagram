@@ -1,15 +1,12 @@
-/**
- * Loading skeleton shown while profile data is being fetched.
- */
 function ProfileSkeleton() {
   return (
-    <div>
-      <div className="skeleton skeleton-avatar" />
-      <div className="skeleton skeleton-title" />
-      <div className="skeleton skeleton-bio" />
-      <div className="skeleton skeleton-bio-2" />
-      <div className="skeleton skeleton-stats" />
-      <div className="skeleton skeleton-btn" />
+    <div className="surface-card stack-md">
+      <div className="skeleton avatar avatar-lg" />
+      <div className="skeleton skeleton-h-28 skeleton-w-54" />
+      <div className="skeleton skeleton-h-16 skeleton-w-82" />
+      <div className="skeleton skeleton-h-16 skeleton-w-68" />
+      <div className="skeleton skeleton-h-72" />
+      <div className="skeleton skeleton-h-44" />
     </div>
   );
 }

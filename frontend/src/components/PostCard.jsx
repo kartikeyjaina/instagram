@@ -6,6 +6,7 @@ import { authService } from "../api/authService";
 import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
 import CommentsModal from "./CommentsModal";
+import Button from "./ui/Button";
 
 function PostCard({ post, onDelete, onLikeChange, onSaveChange }) {
   const currentUser = authService.getUser();
@@ -16,10 +17,13 @@ function PostCard({ post, onDelete, onLikeChange, onSaveChange }) {
   const [showComments, setShowComments] = useState(false);
   const [likeAnim, setLikeAnim] = useState(false);
 
-  const isLiked = likes.some((id) =>
-    (typeof id === "object" ? id._id || id : id).toString() === currentUserId?.toString()
+  const isLiked = likes.some(
+    (id) =>
+      (typeof id === "object" ? id._id || id : id).toString() ===
+      currentUserId?.toString(),
   );
-  const isOwner = post.user?._id?.toString() === currentUserId?.toString() ||
+  const isOwner =
+    post.user?._id?.toString() === currentUserId?.toString() ||
     post.user?.id?.toString() === currentUserId?.toString();
 
   const handleLike = async () => {
@@ -73,40 +77,38 @@ function PostCard({ post, onDelete, onLikeChange, onSaveChange }) {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card overflow-hidden"
+        className="post-card"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4">
-          <Link to={`/profile/${post.user?._id}`} className="flex items-center gap-3 group">
+        <div className="post-header row-between">
+          <Link to={`/profile/${post.user?._id}`} className="row-start">
             {post.user?.profilePic ? (
-              <img src={post.user.profilePic} alt="" className="w-9 h-9 rounded-full object-cover ring-2 ring-cyan-400/30 group-hover:ring-cyan-400/60 transition-all" />
+              <img src={post.user.profilePic} alt="" className="avatar" />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+              <div className="avatar-fallback">
                 {post.user?.username?.charAt(0).toUpperCase()}
               </div>
             )}
             <div>
-              <p className="text-white font-semibold text-sm group-hover:text-cyan-400 transition-colors">
-                @{post.user?.username}
-              </p>
-              <p className="text-gray-500 text-xs">
-                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+              <p className="field-label">@{post.user?.username}</p>
+              <p className="field-note">
+                {formatDistanceToNow(new Date(post.createdAt), {
+                  addSuffix: true,
+                })}
               </p>
             </div>
           </Link>
           {isOwner && (
-            <button onClick={handleDelete} className="text-gray-600 hover:text-red-400 transition-colors text-lg p-1">
-              🗑️
-            </button>
+            <Button variant="ghost" onClick={handleDelete}>
+              Delete
+            </Button>
           )}
         </div>
 
-        {/* Image */}
-        <div className="relative group cursor-pointer" onDoubleClick={handleLike}>
+        <div className="post-media-wrap" onDoubleClick={handleLike}>
           <img
             src={post.imageUrl}
             alt={post.caption}
-            className="w-full object-cover max-h-[500px]"
+            className="post-media"
             loading="lazy"
           />
           <AnimatePresence>
@@ -115,48 +117,41 @@ function PostCard({ post, onDelete, onLikeChange, onSaveChange }) {
                 initial={{ scale: 0, opacity: 1 }}
                 animate={{ scale: 1.4, opacity: 1 }}
                 exit={{ scale: 2, opacity: 0 }}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                className="post-like-overlay"
               >
-                <span className="text-6xl drop-shadow-lg">❤️</span>
+                <span className="post-like-heart">❤</span>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Actions */}
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-4">
+        <div className="post-body">
+          <div className="post-actions">
+            <div className="row-start">
               <motion.button
                 whileTap={{ scale: 0.85 }}
                 onClick={handleLike}
-                className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${isLiked ? "text-red-400" : "text-gray-400 hover:text-red-400"}`}
+                className="button-link"
               >
-                <span className="text-lg">{isLiked ? "❤️" : "🤍"}</span>
+                <span>{isLiked ? "♥" : "♡"}</span>
                 <span>{likes.length}</span>
               </motion.button>
 
-              <button
-                onClick={() => setShowComments(true)}
-                className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-cyan-400 transition-colors"
-              >
-                <span className="text-lg">💬</span>
-                <span>Comment</span>
-              </button>
+              <Button variant="ghost" onClick={() => setShowComments(true)}>
+                Comment
+              </Button>
             </div>
 
-            <motion.button
-              whileTap={{ scale: 0.85 }}
-              onClick={handleSave}
-              className={`text-lg transition-colors ${saved ? "text-yellow-400" : "text-gray-400 hover:text-yellow-400"}`}
-            >
-              {saved ? "🔖" : "🏷️"}
-            </motion.button>
+            <motion.div whileTap={{ scale: 0.9 }}>
+              <Button variant="ghost" onClick={handleSave}>
+                {saved ? "Saved" : "Save"}
+              </Button>
+            </motion.div>
           </div>
 
           {post.caption && (
-            <p className="text-gray-300 text-sm leading-relaxed">
-              <span className="text-white font-semibold">@{post.user?.username}</span>{" "}
+            <p className="post-caption">
+              <span className="field-label">@{post.user?.username}</span>{" "}
               {post.caption}
             </p>
           )}

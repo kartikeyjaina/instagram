@@ -8,7 +8,9 @@ import FollowButton from "../components/FollowButton";
 import EditProfileModal from "../components/EditProfileModal";
 import PostCard from "../components/PostCard";
 import PostSkeleton from "../components/PostSkeleton";
+import Button from "../components/ui/Button";
 import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
 
 function Profile() {
   const { id } = useParams();
@@ -82,7 +84,7 @@ function Profile() {
         <div className="max-w-2xl mx-auto">
           <div className="glass-card p-8 mb-6">
             <div className="flex gap-6">
-              <div className="skeleton w-24 h-24 rounded-full flex-shrink-0" />
+              <div className="skeleton w-24 h-24 rounded-full shrink-0" />
               <div className="flex-1 space-y-3">
                 <div className="skeleton h-6 w-40 rounded" />
                 <div className="skeleton h-4 w-64 rounded" />
@@ -116,11 +118,11 @@ function Profile() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 mb-6">
           <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
             {/* Avatar */}
-            <div className="flex-shrink-0">
+              <div className="shrink-0">
               {profile?.profilePic ? (
                 <img src={profile.profilePic} alt="" className="w-24 h-24 rounded-full object-cover ring-4 ring-cyan-400/30" />
               ) : (
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center text-white text-3xl font-black">
+                <div className="w-24 h-24 rounded-full bg-linear-to-br from-cyan-400 to-pink-500 flex items-center justify-center text-white text-3xl font-black">
                   {profile?.username?.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -133,7 +135,12 @@ function Profile() {
                 {isOwnProfile ? (
                   <button onClick={() => setShowEdit(true)} className="btn-ghost text-sm px-3 py-1.5">Edit Profile</button>
                 ) : (
-                  <FollowButton userId={id} initialIsFollowing={isFollowing} onFollowChange={handleFollowChange} />
+                  <>
+                    <FollowButton userId={id} initialIsFollowing={isFollowing} onFollowChange={handleFollowChange} />
+                    <Button variant="secondary" className="px-3 py-1.5 text-sm" as={Link} to={`/messages?user=${id}`}>
+                      Message
+                    </Button>
+                  </>
                 )}
               </div>
 

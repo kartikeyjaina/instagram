@@ -5,16 +5,21 @@ import { env } from "../config/env.config.js";
 const onlineUsers = new Map();
 
 const registerMessageHandlers = (io, socket, userId) => {
-  socket.on("send_message", async ({ senderId, receiverId, text }) => {
+  socket.on("send_message ", async ({ senderId, receiverId, text }) => {
     try {
-      const message = await messageModel.create({ sender: senderId, receiver: receiverId, text });
+      const message = await messageModel.create({
+        sender: senderId,
+        receiver: receiverId,
+        text,
+      });
       const populated = await message.populate([
         { path: "sender", select: "username profilePic" },
         { path: "receiver", select: "username profilePic" },
       ]);
 
       const receiverSocketId = onlineUsers.get(receiverId);
-      if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", populated);
+      if (receiverSocketId)
+        io.to(receiverSocketId).emit("receive_message", populated);
 
       socket.emit("receive_message", populated);
     } catch {
@@ -31,7 +36,8 @@ const registerTypingHandlers = (io, socket) => {
 
   socket.on("stop_typing", ({ receiverId, senderId }) => {
     const receiverSocketId = onlineUsers.get(receiverId);
-    if (receiverSocketId) io.to(receiverSocketId).emit("stop_typing", { senderId });
+    if (receiverSocketId)
+      io.to(receiverSocketId).emit("stop_typing", { senderId });
   });
 };
 

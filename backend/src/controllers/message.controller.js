@@ -90,5 +90,22 @@ export const sendMessage = async (req, res) => {
     { path: "receiver", select: "username profilePic" },
   ]);
 
+  // If socket.io is available on the app, notify online users
+  try {
+    const io = req.app.get("io");
+    const onlineUsers = req.app.get("onlineUsers");
+
+    if (io && onlineUsers) {
+      const receiverSocketId = onlineUsers.get(receiverId?.toString());
+      if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", populated);
+
+      const senderSocketId = onlineUsers.get(senderId?.toString());
+      if (senderSocketId) io.to(senderSocketId).emit("receive_message", populated);
+    }
+  } catch (err) {
+    // don't block response on socket failures
+    console.error("Failed to emit socket message:", err.message || err);
+  }
+
   res.status(201).json({ success: true, data: { message: populated } });
 };

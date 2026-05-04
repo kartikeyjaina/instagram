@@ -1,21 +1,26 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { aiService } from "../api/aiService";
 import { commentService } from "../api/commentService";
 import { authService } from "../api/authService";
 import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
+import Button from "./ui/Button";
+import Input from "./ui/Input";
 
 function CommentsModal({ post, onClose }) {
   const [comments, setComments] = useState([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
+  const [replyTarget, setReplyTarget] = useState(null);
+  const [replyGeneratingFor, setReplyGeneratingFor] = useState(null);
   const bottomRef = useRef(null);
   const currentUser = authService.getUser();
 
   useEffect(() => {
-    commentService.getComments(post._id)
+    commentService
+      .getComments(post._id)
       .then(setComments)
       .catch(() => toast.error("Failed to load comments"))
       .finally(() => setLoading(false));
@@ -25,33 +30,50 @@ function CommentsModal({ post, onClose }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [comments]);
 
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
-    return () => clearInterval(t);
-  }, [cooldown]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!text.trim() || submitting) return;
 
     setSubmitting(true);
     try {
-      const { comment, aiComment, aiCooldown } = await commentService.createComment(post._id, text.trim());
-      setComments((prev) => {
-        const updated = [...prev, comment];
-        if (aiComment) updated.push(aiComment);
-        return updated;
-      });
-      setText("");
-      if (aiCooldown) {
-        setCooldown(aiCooldown);
-        toast("AI cooldown active", { icon: "⏳" });
+      if (replyTarget) {
+        const aiReply = await commentService.createAiReply(
+          post._id,
+          text.trim(),
+          replyTarget._id,
+        );
+        setComments((prev) => [...prev, aiReply]);
+      } else {
+        const { comment } = await commentService.createComment(post._id, text.trim());
+        setComments((prev) => [...prev, comment]);
       }
+      setText("");
+      setReplyTarget(null);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to post comment");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSuggestReply = async (comment) => {
+    if (replyGeneratingFor) return;
+
+    setReplyGeneratingFor(comment._id);
+    try {
+      const suggestion = await aiService.generateCommentReply({
+        commentText: comment.text,
+        postCaption: post.caption,
+        commenterName: comment.user?.username,
+      });
+
+      setReplyTarget(comment);
+      setText(suggestion);
+      toast.success("AI reply ready");
+    } catch {
+      toast.error("Failed to generate AI reply");
+    } finally {
+      setReplyGeneratingFor(null);
     }
   };
 
@@ -61,74 +83,97 @@ function CommentsModal({ post, onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
+        className="modal-overlay"
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="glass-card w-full max-w-lg flex flex-col"
-          style={{ maxHeight: "85vh" }}
+          className="modal-card"
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-white/10">
-            <h3 className="text-white font-bold text-lg">Comments</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-white text-xl transition-colors">✕</button>
+          <div className="modal-header row-between">
+            <h3 className="section-heading">Comments</h3>
+            <Button variant="ghost" onClick={onClose}>
+              Close
+            </Button>
           </div>
 
-          {/* Post preview */}
-          <div className="p-4 border-b border-white/10 flex gap-3">
-            <img src={post.imageUrl} alt="" className="w-14 h-14 rounded-xl object-cover" />
+          <div className="modal-body row-between comment-preview">
+            <img src={post.imageUrl} alt="" className="avatar avatar-md" />
             <div>
-              <p className="text-white font-semibold text-sm">@{post.user?.username}</p>
-              <p className="text-gray-400 text-sm line-clamp-2">{post.caption || "No caption"}</p>
+              <p className="field-label">@{post.user?.username}</p>
+              <p className="field-note">{post.caption || "No caption"}</p>
             </div>
           </div>
 
-          {/* Comments list */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="message-list comment-list-surface">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex gap-3">
-                  <div className="skeleton w-8 h-8 rounded-full flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="skeleton h-3 w-24 rounded" />
-                    <div className="skeleton h-3 w-full rounded" />
+                <div key={i} className="row-start comment-row">
+                  <div className="skeleton avatar avatar-sm" />
+                  <div className="stack-xs flex-1">
+                    <div className="skeleton skeleton-h-12 skeleton-w-96" />
+                    <div className="skeleton skeleton-h-12 skeleton-w-100" />
                   </div>
                 </div>
               ))
             ) : comments.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No comments yet. Be the first!</p>
+              <p className="empty-copy comment-empty">
+                No comments yet. Be the first.
+              </p>
             ) : (
               comments.map((c) => (
                 <motion.div
                   key={c._id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className={`flex gap-3 ${c.isAI ? "bg-cyan-400/5 rounded-xl p-2 border border-cyan-400/20" : ""}`}
+                  className="row-start comment-row"
                 >
                   {c.user?.profilePic ? (
-                    <img src={c.user.profilePic} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                    <img
+                      src={c.user.profilePic}
+                      alt=""
+                      className="avatar avatar-sm"
+                    />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                      {c.isAI ? "🤖" : c.user?.username?.charAt(0).toUpperCase()}
+                    <div className="avatar-fallback avatar-sm avatar-fallback-xs">
+                      {c.isAI
+                        ? "🤖"
+                        : c.user?.username?.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-white font-semibold text-sm">
+                  <div className="comment-meta">
+                    <div className="comment-meta-head">
+                      <span className="field-label">
                         {c.isAI ? "Nexus AI" : `@${c.user?.username}`}
                       </span>
-                      {c.isAI && (
-                        <span className="text-xs bg-cyan-400/20 text-cyan-400 px-2 py-0.5 rounded-full font-bold">AI</span>
+                      {c.isAI && <span className="field-note">AI</span>}
+                      {c.replyTo?.user && (
+                        <span className="field-note">
+                          Reply to @{c.replyTo.user.username}
+                        </span>
                       )}
-                      <span className="text-gray-600 text-xs">
-                        {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
+                      <span className="field-note">
+                        {formatDistanceToNow(new Date(c.createdAt), {
+                          addSuffix: true,
+                        })}
                       </span>
                     </div>
-                    <p className="text-gray-300 text-sm mt-0.5 break-words">{c.text}</p>
+                    <p className="comment-text">{c.text}</p>
+                    {!c.isAI && (
+                      <Button
+                        variant="ghost"
+                        type="button"
+                        onClick={() => handleSuggestReply(c)}
+                        disabled={replyGeneratingFor === c._id}
+                        className="mt-2 px-0"
+                      >
+                        {replyGeneratingFor === c._id
+                          ? "Thinking..."
+                          : "AI reply"}
+                      </Button>
+                    )}
                   </div>
                 </motion.div>
               ))
@@ -136,23 +181,54 @@ function CommentsModal({ post, onClose }) {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
-          <form onSubmit={handleSubmit} className="p-4 border-t border-white/10 flex gap-3">
-            <input
+          {replyTarget && (
+            <div className="modal-body row-between comment-preview">
+              <div>
+                <p className="field-label">
+                  Replying to @{replyTarget.user?.username}
+                </p>
+                <p className="field-note">
+                  AI reply will be posted as a comment
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => {
+                  setReplyTarget(null);
+                  setText("");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+
+          <form
+            onSubmit={handleSubmit}
+            className="message-composer row-between"
+          >
+            <Input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={cooldown > 0 ? `AI cooldown: ${cooldown}s` : "Add a comment… (use @ai to ask AI)"}
-              className="input-field flex-1 text-sm"
+              placeholder={
+                replyTarget
+                  ? "Edit and send this AI-drafted reply"
+                  : "Add a comment..."
+              }
+              className=""
               maxLength={1000}
               disabled={submitting}
             />
-            <button
-              type="submit"
-              disabled={!text.trim() || submitting}
-              className="btn-primary px-4 py-2 text-sm"
-            >
-              {submitting ? <div className="spinner" /> : "Post"}
-            </button>
+            <Button type="submit" disabled={!text.trim() || submitting}>
+              {submitting ? (
+                <div className="spinner" />
+              ) : replyTarget ? (
+                "Send AI reply"
+              ) : (
+                "Post"
+              )}
+            </Button>
           </form>
         </motion.div>
       </motion.div>

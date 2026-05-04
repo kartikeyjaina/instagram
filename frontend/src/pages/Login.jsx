@@ -1,190 +1,130 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { authService } from '../api/authService'
-import '../styles/Auth.css'
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { authService } from "../api/authService";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import Card from "../components/ui/Card";
 
 function Login() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  })
-  const [errors, setErrors] = useState({})
-  const [loading, setLoading] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
+    email: "",
+    password: "",
+  });
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const validateForm = () => {
-    const newErrors = {}
+    const newErrors = {};
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required'
+      newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email'
+      newErrors.email = "Please enter a valid email";
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required'
+      newErrors.password = "Password is required";
     }
 
-    return newErrors
-  }
+    return newErrors;
+  };
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
+    const { name, value } = e.target;
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
+    }));
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: '',
-      }))
+        [name]: "",
+      }));
     }
-  }
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    const newErrors = validateForm()
+    e.preventDefault();
+
+    const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
+      setErrors(newErrors);
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      await authService.login(formData.email, formData.password)
-      
-      if (rememberMe) {
-        localStorage.setItem('rememberMe', 'true')
-      }
-
-      setSuccessMessage('Welcome back! Redirecting...')
-      setTimeout(() => {
-        navigate('/feed')
-      }, 1000)
+      await authService.login(formData.email, formData.password);
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       setErrors({
-        submit: error.response?.data?.error || error.message || 'Login failed. Please try again.',
-      })
+        submit:
+          error.response?.data?.error ||
+          error.message ||
+          "Login failed. Please try again.",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="app-container">
-      <div className="auth-wrapper fade-in">
-        <div className="auth-card">
-          {/* Header */}
-          <div className="auth-header">
-            <div className="logo-circle">
-              <svg
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                <path d="M16 11.37A4 4 0 1 1 12.63 8" />
-                <circle cx="17.5" cy="6.5" r="1.5" />
-              </svg>
-            </div>
-            <h1>Welcome Back</h1>
-            <p>Sign in to your Instagram 2.0 account</p>
-          </div>
+    <Card className="auth-card">
+      <div className="auth-brand">
+        <span className="auth-brand-mark">I</span>
+      </div>
 
-          {/* Success Message */}
-          {successMessage && (
-            <div className="alert alert-success">
-              {successMessage}
-            </div>
-          )}
+      <div className="stack-sm auth-center">
+        <h1 className="auth-title">Welcome back</h1>
+        <p className="auth-copy">Sign in to continue to your workspace.</p>
+      </div>
 
-          {/* Error Message */}
-          {errors.submit && (
-            <div className="alert alert-error">
-              {errors.submit}
-            </div>
-          )}
+      {errors.submit && <div className="field-error">{errors.submit}</div>}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="auth-form">
-            <div className="form-group">
-              <label htmlFor="email">Email Address</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="your.email@example.com"
-                className={`form-input ${errors.email ? 'error' : ''}`}
-              />
-              {errors.email && <span className="error-text">{errors.email}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                className={`form-input ${errors.password ? 'error' : ''}`}
-              />
-              {errors.password && <span className="error-text">{errors.password}</span>}
-            </div>
-
-            <div className="form-options">
-              <label className="remember-me">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                <span>Remember me</span>
-              </label>
-              <a href="#" className="forgot-password">
-                Forgot password?
-              </a>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary"
-            >
-              {loading ? 'Signing In...' : 'Sign In'}
-            </button>
-          </form>
-
-
-
-          {/* Footer */}
-          <div className="auth-footer">
-            <p>
-              Don't have an account?{' '}
-              <Link to="/register" className="link-primary">
-                Sign Up
-              </Link>
-            </p>
-          </div>
+      <form onSubmit={handleSubmit} className="form-stack">
+        <div className="field">
+          <label htmlFor="email" className="field-label">
+            Email address
+          </label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="your.email@example.com"
+          />
+          {errors.email && <span className="field-error">{errors.email}</span>}
         </div>
 
-        {/* Bottom Message */}
-        <p className="auth-message">
-          Your privacy is important. We never share your data.
-        </p>
-      </div>
-    </div>
-  )
+        <div className="field">
+          <label htmlFor="password" className="field-label">
+            Password
+          </label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Enter your password"
+          />
+          {errors.password && (
+            <span className="field-error">{errors.password}</span>
+          )}
+        </div>
+
+        <Button type="submit" disabled={loading} block>
+          {loading ? "Signing in..." : "Sign in"}
+        </Button>
+      </form>
+
+      <p className="auth-copy auth-center">
+        Don't have an account? <Link to="/register">Sign up</Link>
+      </p>
+    </Card>
+  );
 }
 
-export default Login
+export default Login;

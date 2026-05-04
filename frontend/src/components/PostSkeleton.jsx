@@ -1,20 +1,20 @@
 function PostSkeleton() {
   return (
-    <div className="glass-card overflow-hidden">
-      <div className="flex items-center gap-3 p-4">
-        <div className="skeleton w-9 h-9 rounded-full" />
-        <div className="space-y-2">
-          <div className="skeleton h-3 w-28 rounded" />
-          <div className="skeleton h-2 w-16 rounded" />
+    <div className="post-card">
+      <div className="post-header row-start">
+        <div className="skeleton avatar" />
+        <div className="stack-xs flex-1">
+          <div className="skeleton skeleton-h-14 skeleton-w-112" />
+          <div className="skeleton skeleton-h-10 skeleton-w-72" />
         </div>
       </div>
-      <div className="skeleton w-full h-64" style={{ borderRadius: 0 }} />
-      <div className="p-4 space-y-3">
-        <div className="flex gap-4">
-          <div className="skeleton h-4 w-12 rounded" />
-          <div className="skeleton h-4 w-16 rounded" />
+      <div className="skeleton post-media radius-0" />
+      <div className="post-body stack-sm">
+        <div className="row-start">
+          <div className="skeleton skeleton-h-16 skeleton-w-52" />
+          <div className="skeleton skeleton-h-16 skeleton-w-64" />
         </div>
-        <div className="skeleton h-3 w-3/4 rounded" />
+        <div className="skeleton skeleton-h-14 skeleton-w-76" />
       </div>
     </div>
   );

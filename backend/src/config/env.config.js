@@ -1,14 +1,24 @@
 import dotenv from "dotenv";
+import { z } from "zod";
 
 dotenv.config();
 
+const envSchema = z.object({
+  PORT: z.coerce.number().int().positive().default(4000),
+  FRONTEND_URL: z.string().url().default("http://localhost:5173"),
+  CORS_ORIGINS: z.string().optional(),
+  MONGO_URI: z.string().min(1, "MONGO_URI is required"),
+  JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
+  IMAGEKIT_PUBLIC_KEY: z.string().min(1, "IMAGEKIT_PUBLIC_KEY is required"),
+  IMAGEKIT_PRIVATE_KEY: z.string().min(1, "IMAGEKIT_PRIVATE_KEY is required"),
+  IMAGEKIT_URL_ENDPOINT: z
+    .string()
+    .url("IMAGEKIT_URL_ENDPOINT must be a valid URL"),
+  GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
+});
+
+const parsedEnv = envSchema.parse(process.env);
+
 export const env = {
-  PORT: process.env.PORT || 4000,
-  FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173",
-  MONGO_URI: process.env.MONGO_URI,
-  JWT_SECRET: process.env.JWT_SECRET || "dev_secret",
-  IMAGEKIT_PUBLIC_KEY: process.env.IMAGEKIT_PUBLIC_KEY,
-  IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY,
-  IMAGEKIT_URL_ENDPOINT: process.env.IMAGEKIT_URL_ENDPOINT,
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+  ...parsedEnv,
 };

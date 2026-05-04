@@ -17,7 +17,7 @@ function Feed() {
   const loadPosts = useCallback(async (pageNum, replace = false) => {
     try {
       const data = await postService.getFeed(pageNum);
-      setPosts((prev) => replace ? data.posts : [...prev, ...data.posts]);
+      setPosts((prev) => (replace ? data.posts : [...prev, ...data.posts]));
       setHasMore(data.hasMore);
     } catch {
       toast.error("Failed to load feed");
@@ -31,9 +31,9 @@ function Feed() {
     loadPosts(1, true);
   }, [loadPosts]);
 
-  // Infinite scroll
   useEffect(() => {
     if (!hasMore || loadingMore) return;
+
     observerRef.current = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
@@ -43,59 +43,62 @@ function Feed() {
           loadPosts(nextPage);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
+
     if (sentinelRef.current) observerRef.current.observe(sentinelRef.current);
     return () => observerRef.current?.disconnect();
   }, [hasMore, loadingMore, page, loadPosts]);
 
-  const handleDelete = (postId) => setPosts((prev) => prev.filter((p) => p._id !== postId));
+  const handleDelete = (postId) =>
+    setPosts((prev) => prev.filter((p) => p._id !== postId));
   const handleLikeChange = (postId, newLikes) =>
-    setPosts((prev) => prev.map((p) => p._id === postId ? { ...p, likes: newLikes } : p));
+    setPosts((prev) =>
+      prev.map((p) => (p._id === postId ? { ...p, likes: newLikes } : p)),
+    );
 
   return (
-    <div className="min-h-screen pt-20 pb-10 px-4">
-      <div className="max-w-xl mx-auto">
-        <motion.h1
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="gradient-text text-2xl font-black mb-6"
-        >
-          Your Feed
-        </motion.h1>
+    <div className="layout-container-narrow page-stack">
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="page-heading">Feed</h1>
+        <p className="page-subtitle">
+          Recent activity from the people you follow.
+        </p>
+      </motion.div>
 
-        {loading ? (
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => <PostSkeleton key={i} />)}
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="glass-card p-12 text-center">
-            <p className="text-4xl mb-4">🌐</p>
-            <p className="text-white font-bold text-lg mb-2">Your feed is empty</p>
-            <p className="text-gray-400 text-sm">Follow people to see their posts here</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {posts.map((post) => (
-              <PostCard
-                key={post._id}
-                post={post}
-                onDelete={handleDelete}
-                onLikeChange={handleLikeChange}
-              />
-            ))}
-            <div ref={sentinelRef} className="h-4" />
-            {loadingMore && (
-              <div className="flex justify-center py-4">
-                <div className="spinner" />
-              </div>
-            )}
-            {!hasMore && posts.length > 0 && (
-              <p className="text-center text-gray-600 text-sm py-4">You're all caught up ✓</p>
-            )}
-          </div>
-        )}
-      </div>
+      {loading ? (
+        <div className="post-list">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <PostSkeleton key={i} />
+          ))}
+        </div>
+      ) : posts.length === 0 ? (
+        <div className="empty-state">
+          <p className="empty-icon">🌐</p>
+          <h2 className="empty-title">Your feed is empty</h2>
+          <p className="empty-copy">Follow people to see their posts here.</p>
+        </div>
+      ) : (
+        <div className="post-list">
+          {posts.map((post) => (
+            <PostCard
+              key={post._id}
+              post={post}
+              onDelete={handleDelete}
+              onLikeChange={handleLikeChange}
+            />
+          ))}
+          <div ref={sentinelRef} />
+          {loadingMore && (
+            <div className="row-start justify-center">
+              <div className="spinner" />
+            </div>
+          )}
+          {!hasMore && posts.length > 0 && (
+            <p className="empty-copy text-center">You're all caught up.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
